@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Postpartum Study App</title>
+<style>
+body { font-family: Arial; background:#eef2f3; margin:0; }
+.container { max-width:900px; margin:auto; background:white; padding:20px; }
+h1 { text-align:center; }
+.question { margin-bottom:15px; padding:10px; background:#f9f9f9; border-radius:8px; }
+button { padding:10px; margin:5px; }
+.progress { height:20px; background:#ddd; border-radius:10px; overflow:hidden; }
+.progress-bar { height:100%; width:0%; background:#4caf50; }
+.correct { color:green; }
+.incorrect { color:red; }
+</style>
+</head>
+
+<body>
+<div class="container">
+<h1>Postpartum NCLEX Study App</h1>
+
+<div id="stats"></div>
+<div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+<p id="timer"></p>
+
+<div id="quiz"></div>
+
+<button onclick="submitQuiz()">Submit</button>
+<button onclick="resetQuiz()">Reset</button>
+<button onclick="filterCategory('all')">All</button>
+<button onclick="filterCategory('fundamentals')">Fundamentals</button>
+<button onclick="filterCategory('complications')">Complications</button>
+<button onclick="filterCategory('psych')">Psych</button>
+
+<h2 id="result"></h2>
+<div id="review"></div>
+</div>
+
+<script>
+const questions = [
+{q:"Boggy uterus indicates?", o:["Infection","Atony","Laceration","DVT"], a:1, cat:"complications", r:"A boggy uterus = uterine atony, the most common cause of PPH."},
+{q:"Most common cause of PPH?", o:["Trauma","Atony","Tissue","Clots"], a:1, cat:"complications", r:"Uterine atony is the leading cause."},
+{q:"Lochia rubra lasts?", o:["1–3 days","4–10","2 weeks","6 weeks"], a:0, cat:"fundamentals", r:"Rubra = early postpartum bleeding."},
+{q:"Foul lochia means?", o:["Normal","Infection","DVT","Hormones"], a:1, cat:"complications", r:"Foul odor = endometritis."},
+{q:"First atony action?", o:["Antibiotics","Massage fundus","Heparin","Oxygen"], a:1, cat:"complications", r:"Massage stimulates contraction."},
+
+{q:"Firm uterus + bleeding?", o:["Atony","Laceration","DVT","Infection"], a:1, cat:"complications", r:"Firm uterus = think trauma."},
+{q:"PPH threshold vaginal?", o:["300","500","800","1000"], a:1, cat:"complications", r:">500 mL defines PPH."},
+{q:"DVT risk due to?", o:["Low clotting","High clotting","Hydration","Anemia"], a:1, cat:"complications", r:"Hypercoagulable state."},
+{q:"Blues duration?", o:["1 day","10 days","6 weeks","1 year"], a:1, cat:"psych", r:"Resolves within ~10 days."},
+{q:"Psychosis onset?", o:["Immediately","48–72 hrs","1 month","6 months"], a:1, cat:"psych", r:"Rapid onset = emergency."},
+
+{q:"Afterpains caused by?", o:["Progesterone","Oxytocin","Estrogen","Insulin"], a:1, cat:"fundamentals", r:"Oxytocin causes contractions."},
+{q:"Breastfeeding effect?", o:["Ovulation delay","Early ovulation","Bleeding","Infection"], a:0, cat:"fundamentals", r:"Prolactin suppresses ovulation."},
+{q:"Full bladder causes?", o:["Less bleeding","More bleeding","No change","Clot"], a:1, cat:"fundamentals", r:"Prevents uterine contraction."},
+{q:"Lochia alba color?", o:["Red","Pink","White","Brown"], a:2, cat:"fundamentals", r:"Final stage is white/yellow."},
+{q:"Fundus gone by?", o:["Day 3","Day 5","Day 10","Day 20"], a:2, cat:"fundamentals", r:"Should not be palpable."},
+
+{q:"Fever postpartum?", o:["Normal","Infection","DVT","Bleeding"], a:1, cat:"complications", r:"Think endometritis."},
+{q:"PE symptom?", o:["Leg pain","Chest pain","Constipation","Headache"], a:1, cat:"complications", r:"Classic PE sign."},
+{q:"DVT sign?", o:["Dyspnea","Calf pain","Fever","Nausea"], a:1, cat:"complications", r:"Localized pain/swelling."},
+{q:"Mastitis cause?", o:["Virus","Bacteria","Hormones","Stress"], a:1, cat:"complications", r:"Usually Staph."},
+{q:"Engorgement timing?", o:["Day 1","Day 2–4","Week 2","Month 1"], a:1, cat:"fundamentals", r:"Milk comes in."},
+
+// Add remaining questions similarly up to 50
+];
+
+let filtered = [...questions];
+let startTime = Date.now();
+
+function loadQuiz() {
+let html="";
+filtered.forEach((q,i)=>{
+html+=`<div class="question">
+<p>${q.q}</p>`;
+q.o.forEach((opt,j)=>{
+html+=`<label><input type="radio" name="q${i}" value="${j}"> ${opt}</label><br>`;
+});
+html+="</div>";
+});
+document.getElementById("quiz").innerHTML=html;
+}
+
+function submitQuiz(){
+let score=0;
+let reviewHTML="";
+filtered.forEach((q,i)=>{
+let sel=document.querySelector(`input[name="q${i}"]:checked`);
+if(sel && +sel.value===q.a){ score++; }
+else{
+reviewHTML+=`<p class="incorrect">${q.q}<br>Correct: ${q.o[q.a]}<br>${q.r}</p>`;
+}
+});
+
+let percent=Math.round((score/filtered.length)*100);
+document.getElementById("result").innerText=`Score: ${score}/${filtered.length} (${percent}%)`;
+document.getElementById("review").innerHTML=reviewHTML;
+
+let history=JSON.parse(localStorage.getItem("scores")||"[]");
+history.push(percent);
+localStorage.setItem("scores",JSON.stringify(history));
+
+updateStats(percent);
+}
+
+function updateStats(latest){
+let history=JSON.parse(localStorage.getItem("scores")||"[]");
+let best=Math.max(...history,0);
+document.getElementById("stats").innerHTML=
+`<p>Attempts: ${history.length} | Best Score: ${best}% | Last Score: ${latest||"-"}%</p>`;
+}
+
+function resetQuiz(){ location.reload(); }
+
+function filterCategory(cat){
+filtered = cat==="all" ? [...questions] : questions.filter(q=>q.cat===cat);
+loadQuiz();
+}
+
+function updateProgress(){
+let answered=document.querySelectorAll("input:checked").length;
+let total=filtered.length;
+let percent=(answered/total)*100;
+document.getElementById("progressBar").style.width=percent+"%";
+}
+
+document.addEventListener("change", updateProgress);
+
+function timer(){
+let sec=Math.floor((Date.now()-startTime)/1000);
+document.getElementById("timer").innerText=`Time: ${sec}s`;
+}
+setInterval(timer,1000);
+
+updateStats();
+loadQuiz();
+</script>
+</body>
+</html>
